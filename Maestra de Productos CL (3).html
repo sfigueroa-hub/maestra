@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maestra de Productos – Servipet</title>
+<style>
+/* ── Servipet palette ─────────────────────────────
+   Dark teal : #007a75
+   Mid teal  : #009e98
+   Light teal: #aadcda
+   Black     : #1a1a1a
+────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 13px;
+  background: #f0fafa;
+  color: #1a1a1a;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ── HEADER ── */
+.site-header {
+  background: linear-gradient(135deg, #005f5b 0%, #007a75 60%, #009e98 100%);
+  color: white;
+  padding: 14px 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.site-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.3px; }
+.site-header p  { opacity: .82; font-size: .83rem; margin-top: 3px; }
+
+/* ── FILTERS ── */
+.filters-bar {
+  background: white;
+  border-bottom: 2px solid #aadcda;
+  padding: 9px 24px;
+  height: 50px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+  position: sticky;
+  top: 68px;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,122,117,.1);
+}
+.filters-bar input,
+.filters-bar select {
+  padding: 5px 10px;
+  border: 1.5px solid #aadcda;
+  border-radius: 7px;
+  font-size: .84rem;
+  color: #1a1a1a;
+  background: #f7fefe;
+  outline: none;
+  height: 32px;
+}
+.filters-bar input { width: 195px; }
+.filters-bar input:focus,
+.filters-bar select:focus { border-color: #007a75; box-shadow: 0 0 0 2px rgba(0,122,117,.15); }
+.results-count {
+  margin-left: auto;
+  font-size: .8rem;
+  color: #007a75;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── TABLE WRAPPER ── */
+.table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  height: calc(100vh - 118px);
+  padding: 0 24px 24px;
+}
+
+/* ── LOADING / ERROR ── */
+.status-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 1rem;
+  color: #64748b;
+  gap: 10px;
+}
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid #aadcda;
+  border-top-color: #007a75;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TABLE ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 14px rgba(0,122,117,.1);
+  table-layout: auto;
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+thead tr {
+  background: #007a75;
+  color: white;
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+thead th {
+  padding: 11px 12px;
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+  border-right: 1px solid rgba(255,255,255,.15);
+  border-bottom: 2px solid #005f5b;
+}
+thead th:first-child { border-radius: 10px 0 0 0; }
+thead th:last-child  { border-radius: 0 10px 0 0; border-right: none; }
+thead th:hover { background: #009e98; }
+thead th .sort-arrow::after { content: ' ⇅'; opacity: .5; font-size: .7rem; }
+thead th.sorted-asc  .sort-arrow::after { content: ' ▲'; opacity: 1; }
+thead th.sorted-desc .sort-arrow::after { content: ' ▼'; opacity: 1; }
+
+tbody tr { border-bottom: 1px solid #e6f5f5; transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f0fafa; }
+tbody tr.hidden { display: none; }
+tbody td { padding: 9px 12px; vertical-align: top; }
+tbody tr:nth-child(even) { background: #f7fdfd; }
+tbody tr:nth-child(even):hover { background: #edfafa; }
+
+/* ── COLUMN TYPES ── */
+.col-marca   { width: 90px; }
+.col-text    { }
+.col-narrow  { width: 80px; white-space: nowrap; }
+.col-mono    { font-family: 'Cascadia Code','Consolas',monospace; font-size: .79rem; color: #4a7c7a; }
+.col-desc    { width: 260px; }
+.col-kp      { width: 210px; }
+.col-links   { width: 120px; }
+
+/* MARCA PILLS */
+.marca-pill {
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: .71rem; font-weight: 700; white-space: nowrap; color: white;
+}
+.marca-belcando { background: #005f5b; }
+.marca-leonardo { background: #007a75; }
+.marca-bewicat  { background: #009e98; }
+.marca-bewidog  { background: #2d7d79; }
+.marca-default  { background: #4a7c7a; }
+
+/* DESCRIPCIÓN expandible */
+.desc-wrap { display: flex; align-items: flex-start; gap: 4px; }
+.desc-short { color: #334155; line-height: 1.5; flex: 1; }
+.expand-row-btn {
+  background: none; border: none; cursor: pointer;
+  color: #007a75; font-size: .9rem; padding: 0 2px;
+  line-height: 1; flex-shrink: 0; margin-top: 2px;
+  transition: transform .15s;
+}
+.expand-row-btn.open { transform: rotate(180deg); }
+.desc-full {
+  margin-top: 6px; padding: 8px 10px;
+  background: #f0fafa; border-left: 3px solid #007a75;
+  border-radius: 0 6px 6px 0; color: #1a1a1a;
+  line-height: 1.6; font-size: .81rem;
+}
+.desc-full.hidden { display: none; }
+
+/* KEY POINTS */
+.kp-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.kp-list li {
+  padding-left: 15px; position: relative;
+  color: #475569; line-height: 1.4; font-size: .79rem;
+}
+.kp-list li::before { content: '✓'; position: absolute; left: 0; color: #007a75; font-weight: 700; }
+
+/* LINKS */
+.tbl-link {
+  display: inline-block; padding: 3px 8px; border-radius: 5px;
+  font-size: .74rem; font-weight: 600; text-decoration: none;
+  background: #f0fafa; color: #007a75; border: 1px solid #aadcda;
+  margin-bottom: 3px; white-space: nowrap;
+}
+.tbl-link:hover { background: #aadcda; color: #005f5b; }
+
+/* EXPANDIBLE EXTRA (ingredientes, análisis, guía) */
+.card-expandable { border-top: 1px solid #e6f5f5; }
+.expand-detail-btn {
+  width: 100%; padding: 7px 12px;
+  background: none; border: none; text-align: left;
+  font-size: .79rem; font-weight: 600; color: #007a75;
+  cursor: pointer; transition: background .12s;
+}
+.expand-detail-btn:hover { background: #f0fafa; }
+.expand-detail { display: none; padding: 0 12px 12px; }
+.expand-detail.open { display: block; }
+.detail-section { margin-top: 10px; }
+.detail-section strong {
+  font-size: .75rem; color: #64748b; text-transform: uppercase;
+  letter-spacing: .4px; display: block; margin-bottom: 3px;
+}
+.detail-section p { font-size: .81rem; color: #334155; line-height: 1.6; }
+
+/* EMPTY STATE */
+.empty-row td { text-align: center; padding: 48px; color: #94a3b8; }
+
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 768px) {
+  body { overflow: auto; height: auto; }
+  .table-wrap { overflow-x: auto; overflow-y: visible; height: auto; padding: 0 8px 24px; }
+  .site-header { position: relative; height: auto; padding: 10px 16px; }
+  .site-header h1 { font-size: 1.1rem; }
+  .filters-bar { top: 0; height: auto; padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
+  .filters-bar input  { width: 100%; }
+  .filters-bar select { flex: 1; min-width: 120px; }
+  .results-count { margin-left: 0; width: 100%; text-align: right; }
+  thead { top: 50px; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Maestra de Productos</h1>
+  <p>Servipet — <span id="total-count">cargando…</span></p>
+</header>
+
+<div class="filters-bar">
+  <input type="text" id="search" placeholder="🔍  Buscar producto, SKU…" oninput="applyFilters()" disabled>
+  <select id="filter-marca"   onchange="applyFilters()" disabled><option>Todas las marcas</option></select>
+  <select id="filter-especie" onchange="applyFilters()" disabled><option>Todas las especies</option></select>
+  <select id="filter-cat"     onchange="applyFilters()" disabled><option>Todas las categorías</option></select>
+  <span class="results-count" id="results-count"></span>
+</div>
+
+<div class="table-wrap" id="table-wrap">
+  <div class="status-msg" id="status-msg">
+    <div class="spinner"></div> Cargando datos…
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIGURACIÓN — edita aquí para cambiar columnas
+   ══════════════════════════════════════════════════
+
+   SHEET_URL : URL del CSV de Google Sheets
+
+   COLUMNS   : columnas que aparecen en la tabla
+     key     → nombre exacto de la columna en el sheet
+     label   → encabezado visible
+     type    → cómo renderizar:
+               'marca'  → pill de color
+               'text'   → texto normal
+               'narrow' → texto, columna angosta
+               'mono'   → fuente monospace (SKU, EAN)
+               'desc'   → descripción corta + expand larga
+               'kp'     → key points con checkmarks
+               'links'  → botones si el valor es URL
+               'expand' → va al panel expandible, no a columna
+
+   EXPAND_COLS : columnas que van en el panel expandible
+     (no se muestran en la tabla, solo al hacer clic en "Ver más")
+
+   FILTER_COLS : columnas que generan desplegables de filtro
+══════════════════════════════════════════════════ */
+
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0Nc3XTOb1GKTFBRQRmLaIjRChRzWAIiGGWDScC_blJMQWfX6K8BrI4_ozDzns9IMwF87kLnsS2A1h/pub?gid=221763108&single=true&output=csv';
+
+const COLUMNS = [
+  { key: 'MARCA',              label: 'Marca',        type: 'marca'  },
+  { key: 'PRODUCTO',           label: 'Producto',     type: 'text'   },
+  { key: 'GRAMAJE',            label: 'Gramaje',      type: 'narrow' },
+  { key: 'LINEA',              label: 'Línea',        type: 'text'   },
+  { key: 'SKU',                label: 'SKU',          type: 'mono'   },
+  { key: 'EAN',                label: 'EAN',          type: 'mono'   },
+  { key: 'CATEGORIA',          label: 'Categoría',    type: 'text'   },
+  { key: 'FORMATO',            label: 'Formato',      type: 'narrow' },
+  { key: 'ESPECIE',            label: 'Especie',      type: 'narrow' },
+  { key: 'ETAPA',              label: 'Etapa',        type: 'narrow' },
+  { key: 'TAMAÑO',             label: 'Tamaño',       type: 'narrow' },
+  { key: 'DESCRIPCIÓN CORTA',  label: 'Descripción',  type: 'desc'   },  // expande DESCRIPCIÓN LARGA
+  { key: 'KEY POINTS',         label: 'Key Points',   type: 'kp'     },
+  { key: 'FICHA TÉCNICA',      label: 'Recursos',     type: 'links'  },  // agrupa con IMAGENES
+];
+
+const EXTRA_LINK_COL = 'IMAGENES';  // se agrupa en la misma celda que FICHA TÉCNICA
+
+const EXPAND_COLS = [
+  { key: 'DESCRIPCIÓN LARGA',    label: 'Descripción completa'  },
+  { key: 'INGREDIENTES',         label: 'Ingredientes'          },
+  { key: 'ANÁLISIS GARANTIZADO', label: 'Análisis garantizado'  },
+  { key: 'GUÍA DE ALIMENTACIÓN', label: 'Guía de alimentación'  },
+];
+
+const FILTER_COLS = [
+  { selectId: 'filter-marca',   key: 'MARCA'    },
+  { selectId: 'filter-especie', key: 'ESPECIE'  },
+  { selectId: 'filter-cat',     key: 'CATEGORIA'},
+];
+
+/* ══════════════════════════════════════════════════
+   LÓGICA — no necesitas tocar esto
+══════════════════════════════════════════════════ */
+
+function parseCSV(text) {
+  const rows = [];
+  let field = '', row = [], inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i+1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { field += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else field += c;
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') {}
+      else field += c;
+    }
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function isURL(val) { return val && (val.startsWith('http://') || val.startsWith('https://')); }
+
+function marcaClass(m) {
+  const map = { belcando:'marca-belcando', leonardo:'marca-leonardo', bewicat:'marca-bewicat', bewidog:'marca-bewidog' };
+  return map[m.toLowerCase()] || 'marca-default';
+}
+
+function renderCell(col, val, row, colMap) {
+  val = (val || '').trim();
+  switch (col.type) {
+    case 'marca':
+      return `<td class="col-marca"><span class="marca-pill ${marcaClass(val)}">${esc(val)}</span></td>`;
+
+    case 'desc': {
+      const larga = (row[colMap['DESCRIPCIÓN LARGA']] || '').trim();
+      return `<td class="col-desc">
+        <div class="desc-wrap">
+          <span class="desc-short">${esc(val)}</span>
+          ${larga ? `<button class="expand-row-btn" onclick="toggleDesc(this)">▾</button>` : ''}
+        </div>
+        ${larga ? `<div class="desc-full hidden">${esc(larga)}</div>` : ''}
+      </td>`;
+    }
+
+    case 'kp': {
+      const items = val.split(';').map(s => s.trim()).filter(Boolean);
+      return `<td class="col-kp"><ul class="kp-list">${items.map(k => `<li>${esc(k)}</li>`).join('')}</ul></td>`;
+    }
+
+    case 'links': {
+      let html = '';
+      if (isURL(val)) html += `<a href="${esc(val)}" target="_blank" class="tbl-link">📄 Ficha</a> `;
+      else if (val)   html += `<span style="font-size:.78rem;color:#64748b">${esc(val)}</span> `;
+      const imgs = (row[colMap[EXTRA_LINK_COL]] || '').trim();
+      if (isURL(imgs)) html += `<a href="${esc(imgs)}" target="_blank" class="tbl-link">🖼 Imgs</a>`;
+      else if (imgs)   html += `<span style="font-size:.78rem;color:#64748b">${esc(imgs)}</span>`;
+      return `<td class="col-links">${html}</td>`;
+    }
+
+    case 'narrow': return `<td class="col-narrow">${esc(val)}</td>`;
+    case 'mono':   return `<td class="col-narrow col-mono">${esc(val)}</td>`;
+    default:       return `<td>${esc(val)}</td>`;
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildTable(rows) {
+  const [headerRow, ...dataRows] = rows;
+  const colMap = {};
+  headerRow.forEach((h, i) => { colMap[h.trim()] = i; });
+
+  // Filtros: únicos ordenados
+  FILTER_COLS.forEach(fc => {
+    const sel = document.getElementById(fc.selectId);
+    const idx = colMap[fc.key];
+    const vals = [...new Set(dataRows.map(r => (r[idx]||'').trim()).filter(Boolean))].sort();
+    const first = sel.options[0].text;
+    sel.innerHTML = `<option value="">${first}</option>` + vals.map(v => `<option>${esc(v)}</option>`).join('');
+    sel.disabled = false;
+  });
+  document.getElementById('search').disabled = false;
+
+  // Encabezados
+  const ths = COLUMNS.map((c, i) =>
+    `<th onclick="sortTable(${i})">${esc(c.label)}<span class="sort-arrow"></span></th>`
+  ).join('');
+
+  // Filas
+  const trs = dataRows.map(row => {
+    const marca   = (row[colMap['MARCA']]    ||'').trim();
+    const especie = (row[colMap['ESPECIE']]  ||'').trim();
+    const cat     = (row[colMap['CATEGORIA']]||'').trim();
+    const searchStr = COLUMNS.map(c => (row[colMap[c.key]]||'').trim()).join(' ').toLowerCase();
+
+    const cells = COLUMNS.map(col => renderCell(col, row[colMap[col.key]], row, colMap)).join('');
+
+    // Panel expandible
+    const expandSections = EXPAND_COLS
+      .map(ec => {
+        const v = (row[colMap[ec.key]]||'').trim();
+        if (!v) return '';
+        return `<div class="detail-section"><strong>${esc(ec.label)}</strong><p>${esc(v)}</p></div>`;
+      }).filter(Boolean).join('');
+
+    const expandHTML = expandSections
+      ? `<tr class="expand-row hidden"><td colspan="${COLUMNS.length}" style="padding:0;background:#fafafa">
+           <div class="card-expandable">
+             <button class="expand-detail-btn" onclick="toggleDetail(this)">▾ Ver detalle completo</button>
+             <div class="expand-detail">${expandSections}</div>
+           </div>
+         </td></tr>`
+      : '';
+
+    return `<tr data-marca="${esc(marca)}" data-especie="${esc(especie)}" data-categoria="${esc(cat)}"
+               data-search="${esc(searchStr)}" data-has-expand="${expandSections?'1':'0'}">
+      ${cells}
+    </tr>${expandHTML}`;
+  }).join('');
+
+  const total = dataRows.length;
+  document.getElementById('total-count').textContent = `${total} productos disponibles`;
+  document.getElementById('results-count').textContent = `${total} resultados`;
+
+  document.getElementById('table-wrap').innerHTML = `
+    <table id="catalog-table">
+      <thead><tr>${ths}</tr></thead>
+      <tbody id="catalog-body">
+        ${trs}
+        <tr class="empty-row hidden" id="empty-row"><td colspan="${COLUMNS.length}">No se encontraron productos.</td></tr>
+      </tbody>
+    </table>`;
+}
+
+function applyFilters() {
+  const q       = document.getElementById('search').value.toLowerCase().trim();
+  const marca   = document.getElementById('filter-marca').value;
+  const especie = document.getElementById('filter-especie').value;
+  const cat     = document.getElementById('filter-cat').value;
+  const rows    = document.querySelectorAll('#catalog-body tr[data-marca]');
+  let visible   = 0;
+  rows.forEach(r => {
+    const ok = (!q      || r.dataset.search.includes(q))
+            && (!marca   || r.dataset.marca     === marca)
+            && (!especie || r.dataset.especie   === especie)
+            && (!cat     || r.dataset.categoria === cat);
+    r.classList.toggle('hidden', !ok);
+    // También ocultar/mostrar la fila expandible asociada
+    const next = r.nextElementSibling;
+    if (next && next.classList.contains('expand-row')) next.classList.toggle('hidden', !ok);
+    if (ok) visible++;
+  });
+  document.getElementById('results-count').textContent = visible + ' resultado' + (visible !== 1 ? 's' : '');
+  const empty = document.getElementById('empty-row');
+  if (empty) empty.classList.toggle('hidden', visible > 0);
+}
+
+function toggleDesc(btn) {
+  const full = btn.closest('td').querySelector('.desc-full');
+  const open = full.classList.toggle('hidden') === false;
+  btn.classList.toggle('open', open);
+  btn.textContent = open ? '▴' : '▾';
+}
+
+function toggleDetail(btn) {
+  const detail = btn.nextElementSibling;
+  const open = detail.classList.toggle('open');
+  btn.textContent = open ? '▴ Ocultar detalle' : '▾ Ver detalle completo';
+}
+
+let sortCol = -1, sortAsc = true;
+function sortTable(col) {
+  const tbody = document.getElementById('catalog-body');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr[data-marca]'));
+  const ths  = document.querySelectorAll('thead th');
+  ths.forEach((th, i) => {
+    th.classList.remove('sorted-asc','sorted-desc');
+    if (i === col) th.classList.add((sortAsc && sortCol === col) ? 'sorted-desc' : 'sorted-asc');
+  });
+  sortAsc = (sortCol === col) ? !sortAsc : true;
+  sortCol = col;
+  rows.sort((a, b) => {
+    const ta = a.cells[col]?.innerText.trim().toLowerCase() || '';
+    const tb = b.cells[col]?.innerText.trim().toLowerCase() || '';
+    return sortAsc ? ta.localeCompare(tb,'es') : tb.localeCompare(ta,'es');
+  });
+  rows.forEach(r => {
+    tbody.appendChild(r);
+    const next = r.nextElementSibling;
+    if (next && next.classList.contains('expand-row')) tbody.appendChild(next);
+  });
+}
+
+// Cargar datos desde Google Sheets
+fetch(SHEET_URL)
+  .then(r => { if (!r.ok) throw new Error('Error ' + r.status); return r.text(); })
+  .then(text => buildTable(parseCSV(text)))
+  .catch(err => {
+    document.getElementById('table-wrap').innerHTML =
+      `<div class="status-msg">⚠️ No se pudo cargar la hoja. Verifica que el link sea público.<br><small>${err}</small></div>`;
+  });
+</script>
+</body>
+</html>
